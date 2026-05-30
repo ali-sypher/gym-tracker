@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN for beautiful interactive charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    
+    <!-- Top Row: Welcome and General Member Metrics -->
+    <div class="dashboard-header">
+        <div class="welcome-section">
+            <h1 class="page-title"><i class="fa-solid fa-chart-line accent-text"></i> Gym Member Dashboard</h1>
+            <p class="subtitle">Track your workouts, view your current progress, and manage your gym membership plan.</p>
+        </div>
+        <div class="joined-date">
+            <i class="fa-solid fa-calendar-alt"></i> Joined: <strong>{{ current_user.joined_date.strftime('%B %d, %Y') }}</strong>
+        </div>
+    </div>
+    
+    <!-- Statistics Overview Grid -->
+    <div class="metrics-grid">
+        <div class="metric-card glass-panel">
+            <div class="metric-icon workouts-icon">
+                <i class="fa-solid fa-dumbbell"></i>
+            </div>
+            <div class="metric-details">
+                <h3>Total Sessions</h3>
+                <p class="metric-value" id="statsWorkouts">{{ total_workouts }}</p>
+                <p class="metric-sub">Logged workouts</p>
+            </div>
+        </div>
+        
+        <div class="metric-card glass-panel">
+            <div class="metric-icon sets-icon">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div class="metric-details">
+                <h3>Total Sets</h3>
+                <p class="metric-value" id="statsSets">{{ total_sets }}</p>
+                <p class="metric-sub">Working sets</p>
+            </div>
+        </div>
+        
+        <div class="metric-card glass-panel">
+            <div class="metric-icon pr-icon">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <div class="metric-details">
+                <h3>All-Time PR</h3>
+                <p class="metric-value" id="statsWeight">{{ max_weight }} <span class="unit">lbs</span></p>
+                <p class="metric-sub">Max weight lifted</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Workspace Grid: left is logger, right is charts & history -->
+    <div class="workspace-grid">
+        
+        <!-- Left Side: Log Workout Form & Membership Card -->
+        <div class="workspace-sidebar">
+            
+            <!-- Membership Card -->
+            <div class="card glass-panel status-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-address-card header-icon accent-text"></i> Membership Pass</h2>
+                    {% if current_user.membership %}
+                        <span class="badge {{ current_user.membership.status.lower() }}">{{ current_user.membership.status }}</span>
+                    {% else %}
+                        <span class="badge danger">None</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if current_user.membership %}
+                        <div class="plan-details">
+                            <h3 class="plan-title">{{ current_user.membership.plan_name }}</h3>
+                            <div class="price-display">
+                                <span class="dollar">$</span>
+                                <span class="amount">{{ current_user.membership.price }}</span>
+                                <span class="period">/renew</span>
+                            </div>
+                            
+                            <hr class="card-divider">
+                            
+                            <div class="plan-dates">
+                                <div class="date-row">
+                                    <span>Started:</span>
+                                    <strong>{{ current_user.membership.start_date.strftime('%b %d, %Y') }}</strong>
+                                </div>
+                                <div class="date-row">
+                                    <span>Ends:</span>
+                                    <strong class="expiration-date">{{ current_user.membership.end_date.strftime('%b %d, %Y') }}</strong>
+                                </div>
+                            </div>
+                            
+                            <!-- Expiration Banner Alert -->
+                            <div class="time-remaining-banner {% if days_left < 7 %}expiring-soon{% endif %}">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                                {% if current_user.membership.status == 'Active' %}
+                                    <span><strong>{{ days_left }} days</strong> left on your plan</span>
+                                {% else %}
+                                    <span>Membership is not active</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="no-plan-alert">No membership plan is currently assigned. Please contact the administrator.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Log Workout Form -->
+            <div class="card glass-panel form-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-plus-circle header-icon accent-text"></i> Log Session</h2>
+                    <p class="subtitle">Record your sets and reps</p>
+                </div>
+                <div class="card-body">
+                    <form id="workoutLogForm" action="{{ url_for('create_workout') }}" method="POST">
+                        <div class="form-group">
+                            <label for="exercise_name">Exercise Name</label>
+                            <input type="text" id="exercise_name" name="exercise_name" class="form-control" placeholder="e.g. Bench Press, Squat" required autocomplete="off">
+                        </div>
+                        
+                        <div class="form-row-3">
+                            <div class="form-group">
+                                <label for="sets">Sets</label>
+                                <input type="number" id="sets" name="sets" class="form-control" min="1" max="100" placeholder="3" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="reps">Reps</label>
+                                <input type="number" id="reps" name="reps" class="form-control" min="1" max="100" placeholder="10" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="weight_lbs">Weight (lbs)</label>
+                                <input type="number" id="weight_lbs" name="weight_lbs" class="form-control" min="0" step="0.5" placeholder="135" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="workout_date">Workout Date</label>
+                            <input type="date" id="workout_date" name="date" class="form-control" required>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success btn-block">
+                            <i class="fa-solid fa-circle-check icon-spacing"></i> Save Workout
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Right Side: Interactive Progress Chart & Workout History Table -->
+        <div class="workspace-main">
+            
+            <!-- Workout Chart -->
+            <div class="card glass-panel chart-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-chart-area header-icon accent-text"></i> Workout Progression Chart</h2>
+                    <p class="subtitle">Weight logs mapped chronologically (lbs)</p>
+                </div>
+                <div class="card-body chart-container-wrapper">
+                    <canvas id="workoutProgressChart"></canvas>
+                    <div id="noChartDataMessage" class="no-data-overlay" style="display: none;">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <p>Not enough workouts logged yet to draw progress trends. Keep going!</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Workout History Grid -->
+            <div class="card glass-panel history-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-clock-rotate-left header-icon accent-text"></i> Logging History</h2>
+                    <p class="subtitle">All logged activities</p>
+                </div>
+                <div class="card-body history-table-container">
+                    <div class="table-responsive">
+                        <table class="data-table" id="workoutsTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Exercise</th>
+                                    <th class="text-center">Sets</th>
+                                    <th class="text-center">Reps</th>
+                                    <th class="text-right">Weight</th>
+                                    <th class="text-right">Vol (lbs)</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for w in workouts %}
+                                    <tr id="workout-row-{{ w.id }}">
+                                        <td><strong>{{ w.date.strftime('%Y-%m-%d') }}</strong></td>
+                                        <td><span class="exercise-badge">{{ w.exercise_name }}</span></td>
+                                        <td class="text-center">{{ w.sets }}</td>
+                                        <td class="text-center">{{ w.reps }}</td>
+                                        <td class="text-right font-numeric">{{ w.weight_lbs }} <span class="unit-text">lbs</span></td>
+                                        <td class="text-right font-numeric text-muted">{{ w.sets * w.reps * w.weight_lbs }}</td>
+                                        <td class="text-center">
+                                            <div class="table-actions">
+                                                <button class="btn-icon btn-edit" onclick="openEditModal({{ w.id }}, '{{ w.exercise_name }}', {{ w.sets }}, {{ w.reps }}, {{ w.weight_lbs }}, '{{ w.date.strftime('%Y-%m-%d') }}')" title="Edit Log">
+                                                    <i class="fa-solid fa-pen-to-square"></i>
+                                                </button>
+                                                <button class="btn-icon btn-delete" onclick="confirmDeleteWorkout({{ w.id }}, '{{ w.exercise_name }}')" title="Delete Log">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr id="emptyTablePlaceholder">
+                                        <td colspan="7" class="empty-table-state">
+                                            <i class="fa-solid fa-clipboard-question"></i>
+                                            <p>No workout sessions logged yet. Get started by entering your first lift on the left!</p>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+</div>
+
+<!-- Premium Edit Workout Modal (Dialog overlays page) -->
+<div id="editWorkoutModal" class="modal-overlay">
+    <div class="modal-content glass-panel animated zoomIn">
+        <div class="modal-header">
+            <h2><i class="fa-solid fa-pen-to-square accent-text"></i> Edit Workout Log</h2>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <form id="editWorkoutForm" onsubmit="submitEditWorkout(event)">
+            <input type="hidden" id="edit_workout_id">
+            
+            <div class="form-group">
+                <label for="edit_exercise_name">Exercise Name</label>
+                <input type="text" id="edit_exercise_name" class="form-control" required autocomplete="off">
+            </div>
+            
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label for="edit_sets">Sets</label>
+                    <input type="number" id="edit_sets" class="form-control" min="1" max="100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_reps">Reps</label>
+                    <input type="number" id="edit_reps" class="form-control" min="1" max="100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_weight_lbs">Weight (lbs)</label>
+                    <input type="number" id="edit_weight_lbs" class="form-control" min="0" step="0.5" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit_workout_date">Workout Date</label>
+                <input type="date" id="edit_workout_date" class="form-control" required>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-save icon-spacing"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal confirmation for Delete -->
+<div id="deleteWorkoutModal" class="modal-overlay">
+    <div class="modal-content glass-panel confirmation-modal animated zoomIn">
+        <div class="modal-header danger-header">
+            <h2><i class="fa-solid fa-circle-exclamation danger-text"></i> Delete Workout?</h2>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to permanently delete the logged workout <strong id="deleteWorkoutName" class="accent-text"></strong>?</p>
+            <p class="warning-sub">This action cannot be undone.</p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                <i class="fa-solid fa-trash-alt icon-spacing"></i> Confirm Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Autofill default date input with today's date in local ISO format
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.getElementById('workout_date');
+        if (dateInput) {
+            dateInput.value = today;
+        }
+        
+        // Initial setup for the progress chart
+        initializeProgressChart();
+    });
+</script>
+{% endblock %}

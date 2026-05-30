@@ -1,0 +1,418 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Control Panel{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    
+    <!-- Top Row: Welcome and General Admin Info -->
+    <div class="dashboard-header">
+        <div class="welcome-section">
+            <h1 class="page-title"><i class="fa-solid fa-shield-halved accent-text"></i> Gym Manager Control Panel</h1>
+            <p class="subtitle">System-wide monitoring, gym member accounts administration, and revenue reports.</p>
+        </div>
+    </div>
+    
+    <!-- Admin Statistics Overview Grid -->
+    <div class="metrics-grid admin-metrics-grid">
+        <div class="metric-card glass-panel">
+            <div class="metric-icon total-users-icon">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div class="metric-details">
+                <h3>Total Accounts</h3>
+                <p class="metric-value">{{ total_users }}</p>
+                <p class="metric-sub">{{ total_members }} members / {{ total_users - total_members }} admins</p>
+            </div>
+        </div>
+        
+        <div class="metric-card glass-panel">
+            <div class="metric-icon active-mem-icon">
+                <i class="fa-solid fa-id-card-clip"></i>
+            </div>
+            <div class="metric-details">
+                <h3>Active Members</h3>
+                <p class="metric-value">{{ active_memberships }}</p>
+                <p class="metric-sub">Access-authorized plans</p>
+            </div>
+        </div>
+        
+        <div class="metric-card glass-panel">
+            <div class="metric-icon revenue-icon">
+                <i class="fa-solid fa-money-bill-trend-up"></i>
+            </div>
+            <div class="metric-details">
+                <h3>Monthly Est. Revenue</h3>
+                <p class="metric-value">$ {{ total_revenue }}</p>
+                <p class="metric-sub">From active plans</p>
+            </div>
+        </div>
+        
+        <div class="metric-card glass-panel">
+            <div class="metric-icon total-workouts-icon">
+                <i class="fa-solid fa-chart-bar"></i>
+            </div>
+            <div class="metric-details">
+                <h3>Total Workouts Logged</h3>
+                <p class="metric-value">{{ total_workouts }}</p>
+                <p class="metric-sub">Gym sessions tracked</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Admin Grid Layout: left is account creation, right is main operations table -->
+    <div class="workspace-grid">
+        
+        <!-- Left Side: Quick Create User Form -->
+        <div class="workspace-sidebar">
+            <div class="card glass-panel form-card">
+                <div class="card-header">
+                    <h2><i class="fa-solid fa-user-plus header-icon accent-text"></i> Register User</h2>
+                    <p class="subtitle">Add a member or administrator</p>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin_create_user') }}" method="POST">
+                        <div class="form-group">
+                            <label for="admin_user_name">Full Name</label>
+                            <input type="text" id="admin_user_name" name="name" class="form-control" placeholder="e.g. Michael Jordan" required autocomplete="off">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="admin_user_email">Email Address</label>
+                            <input type="email" id="admin_user_email" name="email" class="form-control" placeholder="mike@domain.com" required autocomplete="off">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="admin_user_password">Password</label>
+                            <input type="password" id="admin_user_password" name="password" class="form-control" placeholder="Create strong password" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="admin_user_role">System Role</label>
+                            <select id="admin_user_role" name="role" class="form-control" onchange="toggleMembershipFormOptions()">
+                                <option value="member" selected>Gym Member (Default)</option>
+                                <option value="admin">Administrator (Manager)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Membership Plan Configuration (Hidden if Admin role is selected) -->
+                        <div id="membershipPlanSection" class="nested-form-section glass-panel">
+                            <h3><i class="fa-solid fa-tags accent-text"></i> Assign Membership</h3>
+                            
+                            <div class="form-group">
+                                <label for="admin_plan_name">Membership Tier</label>
+                                <select id="admin_plan_name" name="plan_name" class="form-control" onchange="updatePlanPriceAndDuration()">
+                                    <option value="Weekly Trial">Weekly Trial ($14.99 - 7 days)</option>
+                                    <option value="Monthly Pass" selected>Monthly Pass ($49.99 - 30 days)</option>
+                                    <option value="VIP Yearly">VIP Yearly ($499.99 - 365 days)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-row-2">
+                                <div class="form-group">
+                                    <label for="admin_plan_price">Price ($)</label>
+                                    <input type="number" id="admin_plan_price" name="price" class="form-control" step="0.01" value="49.99" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin_plan_duration">Duration (Days)</label>
+                                    <input type="number" id="admin_plan_duration" name="duration_days" class="form-control" value="30" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fa-solid fa-user-plus icon-spacing"></i> Register Account
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Side: Main Accounts Administration List -->
+        <div class="workspace-main">
+            
+            <div class="card glass-panel history-card">
+                <div class="card-header admin-table-header">
+                    <div>
+                        <h2><i class="fa-solid fa-users-gear header-icon accent-text"></i> Gym Accounts Directory</h2>
+                        <p class="subtitle">Complete directory of all admins and members</p>
+                    </div>
+                    <!-- Quick Table Search Filter -->
+                    <div class="search-filter-wrapper">
+                        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                        <input type="text" id="adminSearchInput" onkeyup="filterAdminTable()" class="form-control table-search" placeholder="Search members...">
+                    </div>
+                </div>
+                <div class="card-body admin-table-container">
+                    <div class="table-responsive">
+                        <table class="data-table" id="adminUsersTable">
+                            <thead>
+                                <tr>
+                                    <th>User Profile</th>
+                                    <th>Joined</th>
+                                    <th>Role</th>
+                                    <th>Membership Plan</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-right">Price</th>
+                                    <th>Valid Until</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in users %}
+                                    <tr id="admin-user-row-{{ u.id }}">
+                                        <td>
+                                            <div class="user-cell">
+                                                <div class="user-avatar {{ u.role }}">
+                                                    <i class="fa-solid {% if u.role == 'admin' %}fa-user-shield{% else %}fa-user-ninja{% endif %}"></i>
+                                                </div>
+                                                <div class="user-info">
+                                                    <strong class="user-name-cell">{{ u.name }}</strong>
+                                                    <span class="user-email-cell text-muted">{{ u.email }}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><span class="date-cell">{{ u.joined_date.strftime('%Y-%m-%d') }}</span></td>
+                                        <td>
+                                            <span class="badge {{ u.role }}">{{ u.role.upper() }}</span>
+                                        </td>
+                                        <td>
+                                            {% if u.role == 'admin' %}
+                                                <span class="admin-na-text">N/A (Staff)</span>
+                                            {% elif u.membership %}
+                                                <span class="plan-cell font-bold">{{ u.membership.plan_name }}</span>
+                                            {% else %}
+                                                <span class="danger-text">No Plan Assigned</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if u.role == 'admin' %}
+                                                <span class="badge success">ACTIVE</span>
+                                            {% elif u.membership %}
+                                                <span class="badge {{ u.membership.status.lower() }}">{{ u.membership.status }}</span>
+                                            {% else %}
+                                                <span class="badge danger">INACTIVE</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-right font-numeric">
+                                            {% if u.role == 'admin' %}
+                                                <span class="text-muted">-</span>
+                                            {% elif u.membership %}
+                                                ${{ u.membership.price }}
+                                            {% else %}
+                                                $0.00
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if u.role == 'admin' %}
+                                                <span class="text-muted">Lifetime Staff</span>
+                                            {% elif u.membership %}
+                                                <span class="valid-date-cell">{{ u.membership.end_date.strftime('%Y-%m-%d') }}</span>
+                                            {% else %}
+                                                <span class="danger-text">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="table-actions">
+                                                {% if u.role == 'member' and u.membership %}
+                                                    <button class="btn-icon btn-edit" onclick="openManageMembershipModal({{ u.membership.id }}, '{{ u.name }}', '{{ u.membership.plan_name }}', '{{ u.membership.status }}', {{ u.membership.price }}, '{{ u.membership.end_date.strftime('%Y-%m-%d') }}')" title="Manage Membership">
+                                                        <i class="fa-solid fa-address-card"></i>
+                                                    </button>
+                                                {% elif u.role == 'member' %}
+                                                    <!-- Setup trial since plan is missing -->
+                                                    <button class="btn-icon btn-success" onclick="assignDefaultMembership({{ u.id }}, '{{ u.name }}')" title="Assign Plan">
+                                                        <i class="fa-solid fa-plus-circle"></i>
+                                                    </button>
+                                                {% else %}
+                                                    <button class="btn-icon btn-edit" disabled title="Staff admin controls bypass memberships" style="opacity: 0.2; cursor: not-allowed;">
+                                                        <i class="fa-solid fa-address-card"></i>
+                                                    </button>
+                                                {% endif %}
+                                                
+                                                {% if u.id == current_user.id %}
+                                                    <button class="btn-icon btn-delete" disabled title="Cannot delete yourself!" style="opacity: 0.2; cursor: not-allowed;">
+                                                        <i class="fa-solid fa-user-xmark"></i>
+                                                    </button>
+                                                {% else %}
+                                                    <button class="btn-icon btn-delete" onclick="confirmDeleteUser({{ u.id }}, '{{ u.name }}', '{{ u.role }}')" title="Delete Account">
+                                                        <i class="fa-solid fa-user-xmark"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+</div>
+
+<!-- Manage Membership Modal -->
+<div id="manageMembershipModal" class="modal-overlay">
+    <div class="modal-content glass-panel animated zoomIn">
+        <div class="modal-header">
+            <h2><i class="fa-solid fa-address-card accent-text"></i> Manage Gym Membership</h2>
+            <button class="modal-close" onclick="closeManageMembershipModal()">&times;</button>
+        </div>
+        <p class="modal-lead">User: <strong id="modalMemberName" class="accent-text"></strong></p>
+        
+        <form id="manageMembershipForm" method="POST" action="">
+            <div class="form-group">
+                <label for="modal_plan_name">Membership Tier</label>
+                <select id="modal_plan_name" name="plan_name" class="form-control" onchange="updateModalPlanDefaults()">
+                    <option value="Weekly Trial">Weekly Trial</option>
+                    <option value="Monthly Pass">Monthly Pass</option>
+                    <option value="VIP Yearly">VIP Yearly</option>
+                    <option value="Custom">Custom Plan</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="modal_status">Plan Status</label>
+                <select id="modal_status" name="status" class="form-control">
+                    <option value="Active">Active</option>
+                    <option value="Expired">Expired</option>
+                    <option value="Cancelled">Cancelled</option>
+                </select>
+            </div>
+            
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label for="modal_price">Renew/Update Price ($)</label>
+                    <input type="number" id="modal_price" name="price" class="form-control" step="0.01" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="modal_duration">Renew Period (Days)</label>
+                    <input type="number" id="modal_duration" name="duration_days" class="form-control" value="30" required>
+                </div>
+            </div>
+            
+            <div class="renewal-note-box glass-panel">
+                <i class="fa-solid fa-info-circle accent-text"></i>
+                <p>Updating membership status to <strong>"Active"</strong> will automatically renew the plan and extend the validity starting from today by the input duration days.</p>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeManageMembershipModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-floppy-disk icon-spacing"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete User Confirmation Modal -->
+<div id="deleteUserModal" class="modal-overlay">
+    <div class="modal-content glass-panel confirmation-modal animated zoomIn">
+        <div class="modal-header danger-header">
+            <h2><i class="fa-solid fa-triangle-exclamation danger-text"></i> Permanently Delete Account?</h2>
+            <button class="modal-close" onclick="closeDeleteUserModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to permanently delete the <strong id="deleteUserRole" class="badge danger"></strong> account for <strong id="deleteUserName" class="accent-text"></strong>?</p>
+            <div class="danger-warning-box">
+                <p><i class="fa-solid fa-circle-exclamation"></i> <strong>CRITICAL WARNING:</strong> Deleting this user will instantly erase all of their historical gym logs, workout records, and membership cards from the database forever!</p>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteUserModal()">Cancel</button>
+            <form id="deleteUserForm" method="POST" action="">
+                <button type="submit" class="btn btn-danger">
+                    <i class="fa-solid fa-user-slash icon-spacing"></i> Delete Permanently
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle membership details in create form based on role selection
+    function toggleMembershipFormOptions() {
+        const roleSelect = document.getElementById('admin_user_role');
+        const planSection = document.getElementById('membershipPlanSection');
+        if (roleSelect && planSection) {
+            if (roleSelect.value === 'admin') {
+                planSection.style.display = 'none';
+            } else {
+                planSection.style.display = 'block';
+                planSection.classList.add('animated', 'fadeIn');
+            }
+        }
+    }
+
+    // Update plan defaults based on selection in user create panel
+    function updatePlanPriceAndDuration() {
+        const planName = document.getElementById('admin_plan_name').value;
+        const priceInput = document.getElementById('admin_plan_price');
+        const durationInput = document.getElementById('admin_plan_duration');
+        
+        if (planName === 'Weekly Trial') {
+            priceInput.value = '14.99';
+            durationInput.value = '7';
+        } else if (planName === 'Monthly Pass') {
+            priceInput.value = '49.99';
+            durationInput.value = '30';
+        } else if (planName === 'VIP Yearly') {
+            priceInput.value = '499.99';
+            durationInput.value = '365';
+        }
+    }
+
+    // Admin Table Filtering/Search
+    function filterAdminTable() {
+        const input = document.getElementById("adminSearchInput");
+        const filter = input.value.toUpperCase();
+        const table = document.getElementById("adminUsersTable");
+        const tr = table.getElementsByTagName("tr");
+
+        // Loop through all table rows, except the header
+        for (let i = 1; i < tr.length; i++) {
+            const nameCell = tr[i].getElementsByClassName("user-name-cell")[0];
+            const emailCell = tr[i].getElementsByClassName("user-email-cell")[0];
+            const planCell = tr[i].getElementsByClassName("plan-cell")[0];
+            
+            if (nameCell || emailCell) {
+                const nameText = nameCell ? nameCell.textContent || nameCell.innerText : "";
+                const emailText = emailCell ? emailCell.textContent || emailCell.innerText : "";
+                const planText = planCell ? planCell.textContent || planCell.innerText : "";
+                
+                if (nameText.toUpperCase().indexOf(filter) > -1 || 
+                    emailText.toUpperCase().indexOf(filter) > -1 ||
+                    planText.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+
+    // Modal select update
+    function updateModalPlanDefaults() {
+        const planName = document.getElementById('modal_plan_name').value;
+        const priceInput = document.getElementById('modal_price');
+        const durationInput = document.getElementById('modal_duration');
+        
+        if (planName === 'Weekly Trial') {
+            priceInput.value = '14.99';
+            durationInput.value = '7';
+        } else if (planName === 'Monthly Pass') {
+            priceInput.value = '49.99';
+            durationInput.value = '30';
+        } else if (planName === 'VIP Yearly') {
+            priceInput.value = '499.99';
+            durationInput.value = '365';
+        }
+    }
+</script>
+{% endblock %}

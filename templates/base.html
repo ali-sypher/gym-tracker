@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gym Tracker{% endblock %} - SQL Lab</title>
+    
+    <!-- Custom Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons for modern, premium look -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Main Premium Vanilla Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    
+    <!-- Header/Navigation Bar -->
+    <header class="main-header">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="logo">
+                <i class="fa-solid fa-dumbbell logo-icon"></i>
+                <span class="logo-text">GYM <span class="accent-text">TRACKER</span></span>
+            </a>
+            
+            <button class="mobile-nav-toggle" aria-label="Toggle navigation">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+            
+            <nav class="navbar">
+                <ul class="nav-links">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role == 'admin' %}
+                            <li class="nav-item"><a href="{{ url_for('admin_dashboard') }}" class="nav-link {% if request.path == '/admin' %}active{% endif %}"><i class="fa-solid fa-shield-halved icon-spacing"></i>Admin Panel</a></li>
+                        {% else %}
+                            <li class="nav-item"><a href="{{ url_for('dashboard') }}" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}"><i class="fa-solid fa-chart-line icon-spacing"></i>My Dashboard</a></li>
+                        {% endif %}
+                        
+                        <li class="nav-item user-badge">
+                            <span class="user-welcome">
+                                <i class="fa-solid fa-user-circle"></i> 
+                                Hi, <strong class="user-name">{{ current_user.name }}</strong>
+                                <span class="role-badge {{ current_user.role }}">{{ current_user.role.upper() }}</span>
+                            </span>
+                        </li>
+                        <li class="nav-item"><a href="{{ url_for('logout') }}" class="nav-link btn-logout"><i class="fa-solid fa-right-from-bracket icon-spacing"></i>Logout</a></li>
+                    {% else %}
+                        <li class="nav-item"><a href="{{ url_for('login') }}" class="nav-link {% if request.path == '/login' %}active{% endif %}"><i class="fa-solid fa-lock icon-spacing"></i>Login</a></li>
+                        <li class="nav-item"><a href="{{ url_for('register') }}" class="btn btn-primary"><i class="fa-solid fa-user-plus icon-spacing"></i>Join Now</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Slide-in Toast Notifications -->
+    <div class="toast-container" id="toastContainer">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="toast toast-{{ category }}" role="alert">
+                        <div class="toast-icon">
+                            {% if category == 'success' %}
+                                <i class="fa-solid fa-circle-check"></i>
+                            {% elif category == 'danger' %}
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                            {% elif category == 'warning' %}
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            {% else %}
+                                <i class="fa-solid fa-circle-info"></i>
+                            {% endif %}
+                        </div>
+                        <div class="toast-content">
+                            <p class="toast-message">{{ message }}</p>
+                        </div>
+                        <button class="toast-close-btn" onclick="this.parentElement.remove()">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-container">
+            <p>&copy; 2026 Gym Tracker - Premium Gym & Member Management System.</p>
+            <div class="footer-links">
+                <a href="#"><i class="fa-brands fa-github"></i> GitHub</a>
+                <a href="#"><i class="fa-solid fa-database"></i> SQLite Database</a>
+                <a href="#"><i class="fa-solid fa-flask"></i> Flask Powered</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Main JS Operations -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

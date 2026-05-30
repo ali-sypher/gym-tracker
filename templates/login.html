@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card glass-panel">
+        <div class="auth-header">
+            <i class="fa-solid fa-circle-user auth-icon"></i>
+            <h2>Welcome Back</h2>
+            <p>Access your Gym Tracker fitness dashboard and logs</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('login') }}" class="auth-form">
+            <div class="form-group">
+                <label for="email"><i class="fa-solid fa-envelope field-icon"></i> Email Address</label>
+                <input type="email" id="email" name="email" class="form-control" placeholder="name@domain.com" required autocomplete="email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password"><i class="fa-solid fa-lock field-icon"></i> Password</label>
+                <div class="password-input-wrapper">
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
+                    <button type="button" class="password-toggle" id="passwordToggleBtn">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-options">
+                <label class="checkbox-container">
+                    <input type="checkbox" name="remember" id="remember">
+                    <span class="checkmark"></span>
+                    Remember me
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fa-solid fa-right-to-bracket icon-spacing"></i> Sign In
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>New to Gym Tracker? <a href="{{ url_for('register') }}" class="accent-link">Create an account</a></p>
+        </div>
+    </div>
+    
+    <div class="auth-sidebar-stack">
+        <!-- Visual Vector Banner matching gym theme -->
+        <div class="visual-banner-card glass-panel">
+            <img src="{{ url_for('static', filename='images/fitness_banner.png') }}" alt="Fitness Tracker Illustration" class="visual-banner-img">
+        </div>
+        
+        <!-- Quick Demo Accounts Helper Box -->
+        <div class="demo-accounts-card glass-panel">
+            <h3><i class="fa-solid fa-flask-vial accent-text"></i> Quick Demo Access</h3>
+            <p>Testing helper credentials to explore both roles instantly:</p>
+            
+            <div class="demo-role-grid">
+                <div class="demo-role-card member-card">
+                    <div class="role-header">
+                        <span class="badge member">MEMBER</span>
+                        <button class="btn-copy-demo" onclick="fillDemo('jane@gymtracker.com', 'memberpass')" title="Fill in credentials">
+                            <i class="fa-solid fa-keyboard"></i> Autofill
+                        </button>
+                    </div>
+                    <div class="role-body">
+                        <p><strong>Email:</strong> <code>jane@gymtracker.com</code></p>
+                        <p><strong>Password:</strong> <code>memberpass</code></p>
+                    </div>
+                </div>
+                
+                <div class="demo-role-card admin-card">
+                    <div class="role-header">
+                        <span class="badge admin">ADMIN</span>
+                        <button class="btn-copy-demo" onclick="fillDemo('admin@gymtracker.com', 'adminpass')" title="Fill in credentials">
+                            <i class="fa-solid fa-keyboard"></i> Autofill
+                        </button>
+                    </div>
+                    <div class="role-body">
+                        <p><strong>Email:</strong> <code>admin@gymtracker.com</code></p>
+                        <p><strong>Password:</strong> <code>adminpass</code></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Autofill credentials helper
+    function fillDemo(email, password) {
+        document.getElementById('email').value = email;
+        document.getElementById('password').value = password;
+        
+        // Dynamic visual feed back on inputs
+        const inputs = [document.getElementById('email'), document.getElementById('password')];
+        inputs.forEach(input => {
+            input.style.boxShadow = '0 0 15px rgba(0, 242, 254, 0.4)';
+            setTimeout(() => {
+                input.style.boxShadow = '';
+            }, 1000);
+        });
+        
+        // Show success notification in console or subtle UI
+        console.log(`Demo autofilled for ${email}`);
+    }
+
+    // Toggle Password Visibility
+    const pwdInput = document.getElementById('password');
+    const pwdToggleBtn = document.getElementById('passwordToggleBtn');
+    if (pwdToggleBtn && pwdInput) {
+        pwdToggleBtn.addEventListener('click', function() {
+            const isPassword = pwdInput.type === 'password';
+            pwdInput.type = isPassword ? 'text' : 'password';
+            const icon = pwdToggleBtn.querySelector('i');
+            if (icon) {
+                icon.className = isPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+            }
+        });
+    }
+</script>
+{% endblock %}

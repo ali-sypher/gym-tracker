@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card glass-panel">
+        <div class="auth-header">
+            <i class="fa-solid fa-user-plus auth-icon"></i>
+            <h2>Join Gym Tracker</h2>
+            <p>Create an account to start tracking your gains today</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('register') }}" class="auth-form" id="registerForm">
+            <div class="form-group">
+                <label for="name"><i class="fa-solid fa-id-card field-icon"></i> Full Name</label>
+                <input type="text" id="name" name="name" class="form-control" placeholder="John Doe" required autocomplete="name">
+            </div>
+            
+            <div class="form-group">
+                <label for="email"><i class="fa-solid fa-envelope field-icon"></i> Email Address</label>
+                <input type="email" id="email" name="email" class="form-control" placeholder="john@example.com" required autocomplete="email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password"><i class="fa-solid fa-lock field-icon"></i> Password</label>
+                <input type="password" id="password" name="password" class="form-control" placeholder="Create a strong password" required autocomplete="new-password">
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password"><i class="fa-solid fa-lock-open field-icon"></i> Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Re-enter password" required autocomplete="new-password">
+                <div class="error-text" id="passwordError">Passwords do not match</div>
+            </div>
+            
+            <!-- Quick offer banner -->
+            <div class="signup-offer glass-panel">
+                <div class="offer-icon"><i class="fa-solid fa-gift accent-text"></i></div>
+                <div class="offer-body">
+                    <h4>Free 30-Day trial Membership!</h4>
+                    <p>All new registrants instantly start with an Active 30-day "Monthly Pass" worth $49.99, completely free!</p>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+                <i class="fa-solid fa-user-plus icon-spacing"></i> Register Account
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{{ url_for('login') }}" class="accent-link">Sign In</a></p>
+        </div>
+    </div>
+    
+    <!-- Visual Vector Banner matching gym theme -->
+    <div class="visual-banner-card glass-panel">
+        <img src="{{ url_for('static', filename='images/fitness_banner.png') }}" alt="Fitness Tracker Illustration" class="visual-banner-img">
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const form = document.getElementById('registerForm');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const passwordError = document.getElementById('passwordError');
+    const submitBtn = document.getElementById('submitBtn');
+
+    function validatePasswords() {
+        if (password.value !== confirmPassword.value) {
+            passwordError.style.display = 'block';
+            confirmPassword.classList.add('is-invalid');
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+        } else {
+            passwordError.style.display = 'none';
+            confirmPassword.classList.remove('is-invalid');
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        }
+    }
+
+    password.addEventListener('input', validatePasswords);
+    confirmPassword.addEventListener('input', validatePasswords);
+
+    form.addEventListener('submit', function(e) {
+        if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            passwordError.style.display = 'block';
+            confirmPassword.classList.add('is-invalid');
+        }
+    });
+</script>
+{% endblock %}
